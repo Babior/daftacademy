@@ -72,3 +72,14 @@ def registration(user: UserIn):
     )
     app.users.append(user_out)
     return user_out
+
+
+@app.get("/patient/{id}", response_model=UserOut)
+async def patient_get(id: int, response: Response):
+    if id < 1:
+        response.status_code = 400
+    elif id > len(app.users):
+        response.status_code = 404
+    else:
+        response.status_code = 200
+        return app.users[id-1]
