@@ -98,17 +98,17 @@ def register(user: UserIn):
     return user_out
 
 
-@app.post("/register", response_model=Patient)
-def register_post(person: Person, response: Response):
-    len_name = len(''.join([i for i in person.name if i.isalpha()]))
-    len_surname = len(''.join([i for i in person.surname if i.isalpha()]))
-    len_sum = len_name + len_surname
-    response_date = datetime.date.today()
-    date_to_add = datetime.timedelta(days=len_sum)
-    vaccination_date = response_date + date_to_add
-    person_id = len(app.list_of_patients) + 1
-    response.status_code = 201
-    patient = Patient(id=person_id, name=person.name, surname=person.surname,
-                      register_date=response_date.isoformat(), vaccination_date=vaccination_date.isoformat())
-    app.list_of_patients.append(patient)
-    return patient
+# @app.post("/register", response_model=Patient)
+# def register_post(person: Person, response: Response):
+#     len_name = len(''.join([i for i in person.name if i.isalpha()]))
+#     len_surname = len(''.join([i for i in person.surname if i.isalpha()]))
+#     len_sum = len_name + len_surname
+#     response_date = datetime.date.today()
+#     date_to_add = datetime.timedelta(days=len_sum)
+#     vaccination_date = response_date + date_to_add
+#     person_id = len(app.list_of_patients) + 1
+#     response.status_code = 201
+#     patient = Patient(id=person_id, name=person.name, surname=person.surname,
+#                       register_date=response_date.isoformat(), vaccination_date=vaccination_date.isoformat())
+#     app.list_of_patients.append(patient)
+#     return patient
