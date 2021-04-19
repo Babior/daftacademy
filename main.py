@@ -6,30 +6,22 @@ from datetime import date, timedelta
 from typing import Optional
 
 
-class User(BaseModel):
-    _ID = 1
+class UserIn(BaseModel):
+    name: str
+    surname: str
 
-    def __init__(self):
-        self.id = User._ID
-        User._ID += 1
-        name: str
-        surname: str
-        register_date: date.today()
-        vaccination_date: date
 
-    # __next = 1  # note the underscore, tell other classes to ignore this
-    # id: int = __next
-    # name: str
-    # surname: str
-    # register_date: date
-    # vaccination_date: date
-
-    def save(self):
-        self.__next += 1
+class UserOut(BaseModel):
+    id: int
+    name: str
+    surname: str
+    register_date: date
+    vaccination_date: date
 
 
 app = FastAPI()
-app.counter = 1
+app.user_id = 1
+app.users = []
 
 
 @app.get("/")
@@ -66,3 +58,17 @@ def authorisation(response: Response, password: str = "", password_hash: str = "
         response.status_code = 204
 
 
+@app.post("/register", response_model=UserOut, status_code=201)
+def registration(user: UserIn):
+    user_id = len(app.users) + 1
+    register_date = date.today()
+    vaccination_date = register_date + timedelta(len(user.name) + len(user.surname))
+    user_out = UserOut(
+        id=user_id,
+        name=user.name,
+        surname=user.surname,
+        register_date=register_date,
+        vaccination_date=vaccination_date,
+    )
+    app.users.append(user_out)
+    return user_out
