@@ -29,9 +29,9 @@ app = FastAPI()
 app.counter = 1
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello world!"}
+@app.get("/", status_code=200)
+def read_root() -> JSONResponse:
+    return JSONResponse({"message": "Hello world!"}, status_code=200)
 
 
 @app.api_route("/method/", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
