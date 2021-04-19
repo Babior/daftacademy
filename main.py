@@ -4,20 +4,6 @@ from pydantic import BaseModel
 from hashlib import sha512
 from datetime import date, timedelta
 from typing import Optional
-from utils import count_letters, is_not_blank
-
-
-class UserIn(BaseModel):
-    name: str
-    surname: str
-
-
-class UserOut(BaseModel):
-    id: int
-    name: str
-    surname: str
-    register_date: date
-    vaccination_date: date
 
 
 class User(BaseModel):
