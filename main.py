@@ -31,7 +31,7 @@ app.counter = 1
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello World!"}
+    return {"message": "Hello world!"}
 
 
 @app.api_route("/method/", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
