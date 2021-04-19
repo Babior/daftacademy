@@ -80,35 +80,3 @@ def authorisation(response: Response, password: str = "", password_hash: str = "
         response.status_code = 204
 
 
-# @app.post("/register", response_model=UserOut, status_code=201)
-# def register(user: UserIn):
-#     user_id = app.user_id
-#     app.user_id += 1
-#     register_date = date.today()
-#     len_name_surname = count_letters(user.name) + count_letters(user.surname)
-#     vaccination_date = register_date + timedelta(len_name_surname)
-#     user_out = UserOut(
-#         id=user_id,
-#         name=user.name,
-#         surname=user.surname,
-#         register_date=register_date,
-#         vaccination_date=vaccination_date,
-#     )
-#     app.users[user_id] = user_out
-#     return user_out
-
-
-# @app.post("/register", response_model=Patient)
-# def register_post(person: Person, response: Response):
-#     len_name = len(''.join([i for i in person.name if i.isalpha()]))
-#     len_surname = len(''.join([i for i in person.surname if i.isalpha()]))
-#     len_sum = len_name + len_surname
-#     response_date = datetime.date.today()
-#     date_to_add = datetime.timedelta(days=len_sum)
-#     vaccination_date = response_date + date_to_add
-#     person_id = len(app.list_of_patients) + 1
-#     response.status_code = 201
-#     patient = Patient(id=person_id, name=person.name, surname=person.surname,
-#                       register_date=response_date.isoformat(), vaccination_date=vaccination_date.isoformat())
-#     app.list_of_patients.append(patient)
-#     return patient
