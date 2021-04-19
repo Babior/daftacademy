@@ -1,40 +1,42 @@
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
-
+import hashlib
 from datetime import date, timedelta
+from utils import count_letters, is_not_blank
 
-fake_users_db = {
-    "johndoe": {
-        "name": "liza",
-        "surname": "podliza",
-    },
-    "alice": {
-        "name": "roma",
-        "surname": "svelodrorma",
-
-    },
-}
 
 class User(BaseModel):
-    id: int
-    name: str
-    surname: str
-    register_date: date
-    vaccination_date: date
+    _ID = 1
+    def __init__(self):
+        self.id = User._ID
+        User._ID += 1
+        name: str
+        surname: str
+        register_date: date
+        vaccination_date: date
+
+    # __next = 1  # note the underscore, tell other classes to ignore this
+    # id: int = __next
+    # name: str
+    # surname: str
+    # register_date: date
+    # vaccination_date: date
+
+    def save(self):
+        self.__next += 1
 
 
 app = FastAPI()
 app.counter = 1
 
 
-@app.get("/", status_code=200)
-def read_root() -> JSONResponse:
-    return JSONResponse({"message": "Hello world!"}, status_code=200)
+@app.get("/")
+def root():
+    return {"message": "Hello world!"}
 
 
-@app.api_route("/method/", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
+@app.api_route("/method", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
 def return_method(request: Request) -> JSONResponse:
     """
     Method to return request method.
@@ -46,18 +48,17 @@ def return_method(request: Request) -> JSONResponse:
     return JSONResponse({"method": request.method})
 
 
-@app.post("/register/{user_id}", status_code=201)
+@app.get("/auth", summary="Auth endpoint", status_code=401)
+def auth(password: str = "", password_hash: str = ""):
+    hashed_password = hashlib.sha512(password.encode("utf-8")).hexdigest()
+    if is_not_blank(password) and hashed_password == password_hash:
+        return Response(status_code=204)
+    return Response(status_code=401)
+
+
+@app.post("/register", status_code=201)
 def registration(user: User):
-    app.counter += 1
-    user.id = app.counter
-    d = len(user.name) + len(user.surname)
     user.vaccination_date = user.register_date + timedelta(len(user.name) + len(user.surname))
-    return {"id": user.id, "name": user.name, "surname": user.surname, "register_date": user.register_date, "vaccination_date": user.vaccination_date}
-
-
-# def get_user(db, name: str):
-#     if name in db:
-#         user_dict = db[name]
-#         return User(**user_dict)
-
-
+    user.save()
+    return {"id": user.id, "name": user.name, "surname": user.surname, "register_date": user.register_date,
+            "vaccination_date": user.vaccination_date}
