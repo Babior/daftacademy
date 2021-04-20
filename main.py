@@ -67,6 +67,7 @@ def registration(user: UserIn):
     user_id = len(app.users) + 1
     register_date = date.today()
     vaccination_date = register_date + timedelta(days=(sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
+
     # vaccination_date = register_date + timedelta(len(user.name) + len(user.surname))
     print(len(user.name) + len(user.surname))
     user_out = UserOut(
