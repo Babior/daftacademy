@@ -67,8 +67,7 @@ def registration(user: UserIn):
     """
     user_id = len(app.users) + 1
     register_date = date.today()
-    vaccination_date = register_date + timedelta(
-        days=(sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
+    vaccination_date = register_date + timedelta((sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
     # vaccination_date = register_date + timedelta(len(user.name) + len(user.surname))
     print(len(user.name) + len(user.surname))
     user_out = UserOut(
@@ -89,12 +88,10 @@ def get_patient(id: int, response: Response):
     param: user's id :
     return: user object with id, name, surname, registration date and vaccination date
     """
-    if id < 1:
-        response.status_code = 400
-        return
-    elif id > len(app.users):
-        response.status_code = 404
-        return
-    else:
+    if id in app.users:
         response.status_code = 200
         return app.users[id - 1]
+    elif id < 1:
+        response.status_code = 400
+    else:
+        response.status_code = 404
