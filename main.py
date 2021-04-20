@@ -20,7 +20,6 @@ class UserOut(BaseModel):
 
 
 app = FastAPI()
-app.user_id = 1
 app.users = []
 
 
@@ -42,13 +41,13 @@ def define_method(request: Request) -> JSONResponse:
 
 
 @app.get("/auth")
-def authorisation(response: Response, password: str = "", password_hash: str = ""):
+def authorisation(password: str, password_hash: str, response: Response):
     """
     Method to validate hashed password
     : param: password, password_hash
     : return: HTTP 204 if password hashed by sha512 == password_hash
     """
-    if password == "" or password_hash == "" or password is None or password_hash is None:
+    if (password != None) and (password_hash != None) and (password != "") and (password_hash != ""):
         response.status_code = 401
         return
     hashed = sha512(password.encode()).hexdigest()
@@ -60,9 +59,16 @@ def authorisation(response: Response, password: str = "", password_hash: str = "
 
 @app.post("/register", response_model=UserOut, status_code=201)
 def registration(user: UserIn):
+    """
+    Method to add users to fake db : param: user's name and surname :
+    return: user object with id, name, surname, registration date and
+    vaccination date(=registration date + sum of letter in name and surname) HTTP 204 if
+    """
     user_id = len(app.users) + 1
     register_date = date.today()
-    vaccination_date = register_date + timedelta(len(user.name) + len(user.surname))
+    vaccination_date = register_date + timedelta(days=(sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
+    # vaccination_date = register_date + timedelta(len(user.name) + len(user.surname))
+    print(len(user.name) + len(user.surname))
     user_out = UserOut(
         id=user_id,
         name=user.name,
