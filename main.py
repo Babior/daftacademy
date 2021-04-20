@@ -60,7 +60,8 @@ def authorisation(password: str, password_hash: str, response: Response):
 @app.post("/register", response_model=UserOut, status_code=201)
 def registration(user: UserIn):
     """
-    Method to add users to fake db : param: user's name and surname :
+    Method to add users to fake db :
+    param: user's name and surname :
     return: user object with id, name, surname, registration date and
     vaccination date(=registration date + sum of letter in name and surname) HTTP 204 if
     """
@@ -82,7 +83,12 @@ def registration(user: UserIn):
 
 
 @app.get('/patient/{id}', status_code=404, response_model=UserOut)
-def get_user(id: int, response: Response):
+def get_patient(id: int, response: Response):
+    """
+    Method to return users by id :
+    param: user's id :
+    return: user object with id, name, surname, registration date and vaccination date
+    """
     if id < 1:
         response.status_code = 400
         return
