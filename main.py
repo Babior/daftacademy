@@ -1,9 +1,11 @@
 import hashlib
-from datetime import date, datetime, timedelta
-from typing import Dict, Optional
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse
+
+from datetime import date, timedelta
+from typing import Dict
 from pydantic import BaseModel
+
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 
 
 class UserIn(BaseModel):
