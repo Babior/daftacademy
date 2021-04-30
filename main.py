@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from starlette.responses import HTMLResponse
 
 
 class UserIn(BaseModel):
@@ -96,3 +97,10 @@ def get_patient(user_id: int):
         return Response(status_code=404, detail="Patient not found")
 
     return app.users.get(user_id)
+
+
+@app.get("/hello")
+async def hello():
+    today_date = date.today().isoformat()
+    content = "<h1>Hello! Today date is {}</h1>".format(today_date)
+    return HTMLResponse(content=content)
