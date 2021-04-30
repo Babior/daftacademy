@@ -1,4 +1,5 @@
 import secrets
+import jose
 from typing import Dict, Optional
 
 from fastapi import FastAPI, Response, Request, Depends, HTTPException
@@ -6,7 +7,6 @@ from fastapi.responses import HTMLResponse
 from datetime import date, datetime
 
 from fastapi.security import HTTPBasicCredentials
-from jose import jwt
 from fastapi.templating import Jinja2Templates
 from starlette import status
 from starlette.responses import RedirectResponse
@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 
 def is_logged(session: str = Depends(app.cookie_sec), silent: bool = False):
     try:
-        payload = jwt.decode(session, app.secret_key)
+        payload = jose.jwt.decode(session, app.secret_key)
         return payload.get("magic_key")
     except Exception:
         pass
@@ -55,7 +55,7 @@ def login_basic(auth: bool = Depends(authenticate)):
         return response
 
     response = RedirectResponse(url="/welcome")
-    token = jwt.encode({"magic_key": True}, app.secret_key)
+    token = jose.jwt.encode({"magic_key": True}, app.secret_key)
     response.set_cookie("session", token)
     return response
 
