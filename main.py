@@ -15,29 +15,9 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 
-def is_logged(session: str = Depends(app.cookie_sec), silent: bool = False):
-    try:
-        payload = jose.jwt.decode(session, app.secret_key)
-        return payload.get("magic_key")
-    except Exception:
-        pass
-
-    if silent:
-        return False
-
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
-
-def authenticate(credentials: Optional[HTTPBasicCredentials] = Depends(app.security)):
-    if not credentials:
-        return False
-
-    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
-    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
-
-    if not (correct_username and correct_password):
-        return False
-    return True
+@app.get("/")
+def root():
+    return {"message": "Hello world!"}
 
 
 # Task 3.1
@@ -47,24 +27,4 @@ def hello(request: Request):
         "request": request, "date": datetime.date.today().isoformat()})
 
 
-# Task 3.2
-@app.post("/login")
-def login_basic(auth: bool = Depends(authenticate)):
-    if not auth:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
 
-    response = RedirectResponse(url="/welcome")
-    token = jose.jwt.encode({"magic_key": True}, app.secret_key)
-    response.set_cookie("session", token)
-    return response
-
-
-@app.post("/login_session")
-def login_session():
-    return
-
-
-@app.post("/login_token")
-def login_token():
-    return
