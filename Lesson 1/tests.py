@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from main_1 import app
+from Zaj1 import app
 
 client = TestClient(app)
 

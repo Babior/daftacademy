@@ -1,14 +1,13 @@
 import base64
 import hashlib
-import random
 import secrets
+import jwt
 
 from datetime import date, timedelta
 from typing import Dict
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Request, Response, Header, HTTPException
-from fastapi.responses import JSONResponse
 from starlette.responses import HTMLResponse
 
 from typing import Dict, Optional
@@ -33,11 +32,41 @@ class DaftAPI(FastAPI):
         self.security = HTTPBasic(auto_error=False)
         self.secret_key = "kluczyk"
         self.API_KEY = "session"
+        self.session_cookie_tokens = []
+        self.session_tokens = []
         self.cookie_sec = APIKeyCookie(name=self.API_KEY, auto_error=False)
         self.templates = Jinja2Templates(directory="templates")
 
 
 app = DaftAPI()
+app.counter = 0
+app.session_token = []
+app.token = []
+
+
+def is_logged(session: str = Depends(app.cookie_sec), silent: bool = False):
+    try:
+        payload = jwt.decode(session, app.secret_key)
+        return payload.get("magic_key")
+    except Exception:
+        pass
+
+    if silent:
+        return False
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+def authenticate(credentials: Optional[HTTPBasicCredentials] = Depends(app.security)):
+    if not credentials:
+        return False
+
+    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
+    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
+
+    if not (correct_username and correct_password):
+        return False
+    return True
 
 
 # Task3.1
@@ -56,33 +85,45 @@ def check_password_and_generate_token(header):
     base_decode_result = base64.b64decode(decoded_data_bytes)
     result = base_decode_result.decode('ascii')
     user, password = tuple(result.split(":"))
-    if user == "4dm1n" and password == "NotSoSecurePa$$":
-        random_num = random.randint(0, 1000)
-        token = hashlib.sha512((user + password + str(random_num)).encode())
-        return token.hexdigest()
+    # if user == "4dm1n" and password == "NotSoSecurePa$$":
+        # random_num = random.randint(0, 1000)
+        # token = hashlib.sha512((user + password + str(random_num)).encode())
+    if authenticate():
+        return hashlib.sha256(f"{user}{password}{app.secret_key}".encode()).hexdigest()
     return False
 
 
 @app.post("/login_session")
-async def login_session(response: Response, Authorization: str = Header(None)):
-    token = check_password_and_generate_token(Authorization)
-    if token:
-        if len(app.session_token) == 3:
-            app.session_token = app.session_token[1:]
-        app.session_token.append(token)
-        response.set_cookie(key="session_token", value=token)
-        response.status_code = 201
-        return "OK"
-    raise HTTPException(status_code=401, detail='Unauthorized')
+async def login_basic(auth: bool = Depends(authenticate)):
+    if not auth:
+        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
+        return response
+
+    response = RedirectResponse(url="/welcome")
+    session_token = jwt.encode({"magic_key": True}, app.secret_key)
+    if len(app.session_cookie_tokens) >= 3:
+        del app.session_cookie_tokens[0]
+    app.session_cookie_tokens.append(session_token)
+    response.set_cookie(key="session_token", value=session_token)
+    return response
 
 
-@app.post("/login_token")
-async def login_token(response: Response, Authorization: str = Header(None)):
-    token = check_password_and_generate_token(Authorization)
-    if token:
-        if len(app.token) == 3:
-            app.token = app.token[1:]
-        app.token.append(token)
-        response.status_code = 201
-        return {"token": token}
-    raise HTTPException(status_code=401, detail='Unauthorized')
+@app.post("/login_token", status_code=201)
+def login_token(auth: bool = Depends(authenticate)):
+    if not auth:
+        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
+        return response
+
+    token_value = jwt.encode({"magic_key": True}, app.secret_key)
+    if len(app.session_cookie_tokens) >= 3:
+        del app.session_cookie_tokens[0]
+    app.session_tokens.append(token_value)
+    return {"token": token_value}
+
+
+# Task 3.3
+@app.get("/welcome_session")
+def welcome(request: Request, is_logged: bool = Depends(is_logged)):
+    return app.templates.TemplateResponse(
+        "welcome.html", {"request": request, "user": "4dm1n"}
+    )
