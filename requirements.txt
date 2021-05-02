@@ -9,3 +9,4 @@ py~=1.10.0
 utils~=1.0.1
 setuptools~=49.2.1
 starlette~=0.13.6
+PyJWT==2.1.0

@@ -25,11 +25,13 @@ app.counter: int = 1
 app.users: Dict[int, UserOut] = {}
 
 
+# Task 1.1
 @app.get("/")
 def root():
     return {"message": "Hello world!"}
 
 
+# Task 1.2
 @app.api_route("/method", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
 def define_method(request: Request) -> JSONResponse:
     """
@@ -42,6 +44,7 @@ def define_method(request: Request) -> JSONResponse:
     return JSONResponse({"method": request.method})
 
 
+# Task 1.3
 @app.get("/auth")
 def authorisation(password: str = "", password_hash: str = ""):
     """
@@ -57,6 +60,7 @@ def authorisation(password: str = "", password_hash: str = ""):
     return Response(status_code=401)
 
 
+# Task 1.4
 @app.post("/register", response_model=UserOut, status_code=201)
 def registration(user: UserIn):
     """
@@ -80,6 +84,7 @@ def registration(user: UserIn):
     return user_out
 
 
+# Task 1.5
 @app.get('/patient/{id}', status_code=404, response_model=UserOut)
 def get_patient(user_id: int):
     """
