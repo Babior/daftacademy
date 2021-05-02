@@ -3,12 +3,12 @@ import hashlib
 import secrets
 import jwt
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Request, Response, Header, HTTPException
-from starlette.responses import HTMLResponse
+from fastapi import FastAPI, Request, Response, Header, HTTPException, Query, Cookie
+from starlette.responses import HTMLResponse, PlainTextResponse
 
 from typing import Dict, Optional
 
@@ -22,6 +22,22 @@ from starlette.responses import RedirectResponse
 class Patient(BaseModel):
     name: str
     surname: str
+
+
+class Message:
+    def __init__(self, format: Optional[str] = Query("")):
+        self.format = format
+        self.word = ""
+
+    def return_message(self):
+        """ Return message in correct format (json/html/plain) """
+        if self.format == "json":
+            message = {"message": f"{self.word}!"}
+        elif self.format == "html":
+            message = HTMLResponse(f"<h1>{self.word}!</h1>", status_code=200)
+        else:
+            message = PlainTextResponse(f"{self.word}!", status_code=200)
+        return message
 
 
 class DaftAPI(FastAPI):
@@ -44,15 +60,12 @@ app.session_token = []
 app.token = []
 
 
-def is_logged(session: str = Depends(app.cookie_sec), silent: bool = False):
+def is_logged(session: str = Depends(app.cookie_sec)):
     try:
         payload = jwt.decode(session, app.secret_key)
         return payload.get("magic_key")
     except Exception:
         pass
-
-    if silent:
-        return False
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
@@ -86,8 +99,8 @@ def check_password_and_generate_token(header):
     result = base_decode_result.decode('ascii')
     user, password = tuple(result.split(":"))
     # if user == "4dm1n" and password == "NotSoSecurePa$$":
-        # random_num = random.randint(0, 1000)
-        # token = hashlib.sha512((user + password + str(random_num)).encode())
+    # random_num = random.randint(0, 1000)
+    # token = hashlib.sha512((user + password + str(random_num)).encode())
     if authenticate():
         return hashlib.sha256(f"{user}{password}{app.secret_key}".encode()).hexdigest()
     return False
@@ -123,7 +136,20 @@ def login_token(auth: bool = Depends(authenticate)):
 
 # Task 3.3
 @app.get("/welcome_session")
-def welcome(request: Request, is_logged: bool = Depends(is_logged)):
-    return app.templates.TemplateResponse(
-        "welcome.html", {"request": request, "user": "4dm1n"}
-    )
+def welcome(session_token: str = Cookie(None), is_format: Message = Depends(Message),
+            is_logged: bool = Depends(is_logged)):
+    if not session_token or session_token not in app.session_cookie_tokens:
+        raise HTTPException(status_code=401, detail="Unauthorised")
+    else:
+        is_format.word = "Welcome"
+        return is_format.return_message()
+
+
+@app.get("/welcome_token")
+def welcome_token(token: Optional[str] = Query(None), is_format: Message = Depends(Message),
+                  is_logged: bool = Depends(is_logged)):
+    if not token or token not in app.session_tokens:
+        raise HTTPException(status_code=401, detail="Unathorised")
+    else:
+        is_format.word = "Welcome"
+        return is_format.return_message()
