@@ -91,7 +91,7 @@ async def hello():
 
 
 # 3.2
-def check_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+def check_credentials(credentials: HTTPBasicCredentials = Depends(app.security)):
     '''Helper function for username/password check'''
     valid_username = secrets.compare_digest(credentials.username, "4dm1n")
     valid_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
