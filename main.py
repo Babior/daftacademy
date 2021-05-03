@@ -90,66 +90,94 @@ async def hello():
     return HTMLResponse(content=content)
 
 
-# Task3.2
-def check_password_and_generate_token(header):
-    auth_header = header
-    decoded_data = auth_header.split(" ")[1]
-    decoded_data_bytes = decoded_data.encode('ascii')
-    base_decode_result = base64.b64decode(decoded_data_bytes)
-    result = base_decode_result.decode('ascii')
-    user, password = tuple(result.split(":"))
-    # if user == "4dm1n" and password == "NotSoSecurePa$$":
-    # random_num = random.randint(0, 1000)
-    # token = hashlib.sha512((user + password + str(random_num)).encode())
-    if authenticate():
-        return hashlib.sha256(f"{user}{password}{app.secret_key}".encode()).hexdigest()
-    return False
+# 3.2
+def check_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    '''Helper function for username/password check'''
+    valid_username = secrets.compare_digest(credentials.username, "4dm1n")
+    valid_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
+    if not (valid_password and valid_username):
+        status_code = 401
+    else:
+        status_code = 200
+    return {"status_code": status_code,
+            "valid_username": valid_username,
+            "valid_password": valid_password}
 
 
-@app.post("/login_session")
-async def login_basic(auth: bool = Depends(authenticate)):
-    if not auth:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
-
-    response = RedirectResponse(url="/welcome")
-    session_token = jwt.encode({"magic_key": True}, app.secret_key)
-    if len(app.session_cookie_tokens) >= 3:
-        del app.session_cookie_tokens[0]
-    app.session_cookie_tokens.append(session_token)
-    response.set_cookie(key="session_token", value=session_token)
-    return response
+@app.post("/login_session", status_code=201)
+def login_session(response: Response, authorized: dict = Depends(check_credentials)):
+    if authorized["status_code"] == 200:
+        secret_key = secrets.token_hex(16)
+        session_token = hashlib.sha256(
+            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
+        if len(app.session_cookie_tokens) >= 3:
+            del app.session_cookie_tokens[0]
+        app.session_cookie_tokens.append(session_token)
+        response.set_cookie(key="session_token", value=session_token)
+    elif authorized["status_code"] == 401:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect email or password",
+                            headers={"WWW-Authenticate": "Basic"})
+    return {"message": "Session established"}
 
 
 @app.post("/login_token", status_code=201)
-def login_token(auth: bool = Depends(authenticate)):
-    if not auth:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
-
-    token_value = jwt.encode({"magic_key": True}, app.secret_key)
-    if len(app.session_cookie_tokens) >= 3:
-        del app.session_cookie_tokens[0]
-    app.session_tokens.append(token_value)
+def login_token(authorized: dict = Depends(check_credentials)):
+    if authorized["status_code"] == 200:
+        secret_key = secrets.token_hex(16)
+        token_value = hashlib.sha256(
+            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
+        if len(app.session_tokens) >= 3:
+            del app.session_tokens[0]
+        app.session_tokens.append(token_value)
+    elif authorized["status_code"] == 401:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect email or password",
+                            headers={"WWW-Authenticate": "Basic"})
     return {"token": token_value}
 
 
-# Task 3.3
+# 3.3
 @app.get("/welcome_session")
-def welcome(session_token: str = Cookie(None), is_format: Message = Depends(Message),
-            is_logged: bool = Depends(is_logged)):
+def welcome_session(session_token: str = Cookie(None), is_format: Message = Depends(Message)):
     if not session_token or session_token not in app.session_cookie_tokens:
-        raise HTTPException(status_code=401, detail="Unauthorised")
+        raise HTTPException(status_code=401, detail="Unathorised")
     else:
         is_format.word = "Welcome"
         return is_format.return_message()
 
 
 @app.get("/welcome_token")
-def welcome_token(token: Optional[str] = Query(None), is_format: Message = Depends(Message),
-                  is_logged: bool = Depends(is_logged)):
+def welcome_token(token: Optional[str] = Query(None), is_format: Message = Depends(Message)):
     if not token or token not in app.session_tokens:
         raise HTTPException(status_code=401, detail="Unathorised")
     else:
         is_format.word = "Welcome"
         return is_format.return_message()
+
+
+# 3.4
+@app.delete("/logout_session")
+def logout_session(session_token: str = Cookie(None), format: str = Query("")):
+    if not session_token or session_token not in app.session_cookie_tokens:
+        raise HTTPException(status_code=401, detail="Unathorised")
+    else:
+        app.session_cookie_tokens.remove(session_token)
+        url = f"/logged_out?format={format}"
+        return RedirectResponse(url=url, status_code=303)
+
+
+@app.delete("/logout_token")
+def logout_token(token: Optional[str] = Query(None), format: str = Query("")):
+    if not token or token not in app.session_tokens:
+        raise HTTPException(status_code=401, detail="Unathorised")
+    else:
+        app.session_tokens.remove(token)
+        url = f"/logged_out?format={format}"
+        return RedirectResponse(url=url, status_code=303)
+
+
+@app.get("/logged_out")
+def logged_out(is_format: Message = Depends(Message)):
+    is_format.word = "Logged out"
+    return is_format.return_message()
