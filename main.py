@@ -60,17 +60,8 @@ app.session_token = []
 app.token = []
 
 
-def is_logged(session: str = Depends(app.cookie_sec)):
-    try:
-        payload = jwt.decode(session, app.secret_key)
-        return payload.get("magic_key")
-    except Exception:
-        pass
-
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
-
-def authenticate(credentials: Optional[HTTPBasicCredentials] = Depends(app.security)):
+def authenticate(credentials: HTTPBasicCredentials = Depends(app.security)):
+    """ Helper function for username/password check """
     if not credentials:
         return False
 
@@ -78,21 +69,12 @@ def authenticate(credentials: Optional[HTTPBasicCredentials] = Depends(app.secur
     correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
 
     if not (correct_username and correct_password):
-        return False
-    return True
-
-
-def check_credentials(credentials: HTTPBasicCredentials = Depends(app.security)):
-    """Helper function for username/password check"""
-    valid_username = secrets.compare_digest(credentials.username, "4dm1n")
-    valid_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
-    if not (valid_password and valid_username):
         status_code = 401
     else:
         status_code = 200
     return {"status_code": status_code,
-            "valid_username": valid_username,
-            "valid_password": valid_password}
+            "valid_username": correct_username,
+            "valid_password": correct_password}
 
 
 # Task 3.1
@@ -105,16 +87,16 @@ async def hello():
 
 # Task 3.2
 @app.post("/login_session", status_code=201)
-def login_session(response: Response, authorized: dict = Depends(check_credentials)):
-    if authorized["status_code"] == 200:
+def login_session(response: Response, auth: dict = Depends(authenticate)):
+    if auth["status_code"] == 200:
         secret_key = secrets.token_hex(16)
         session_token = hashlib.sha256(
-            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
+            f'{auth["valid_username"]}{auth["valid_password"]}{secret_key}'.encode()).hexdigest()
         if len(app.session_cookie_tokens) >= 3:
             del app.session_cookie_tokens[0]
         app.session_cookie_tokens.append(session_token)
         response.set_cookie(key="session_token", value=session_token)
-    elif authorized["status_code"] == 401:
+    elif auth["status_code"] == 401:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Basic"})
@@ -122,15 +104,15 @@ def login_session(response: Response, authorized: dict = Depends(check_credentia
 
 
 @app.post("/login_token", status_code=201)
-def login_token(authorized: dict = Depends(check_credentials)):
-    if authorized["status_code"] == 200:
+def login_token(auth: dict = Depends(authenticate)):
+    if auth["status_code"] == 200:
         secret_key = secrets.token_hex(16)
         token_value = hashlib.sha256(
-            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
+            f'{auth["valid_username"]}{auth["valid_password"]}{secret_key}'.encode()).hexdigest()
         if len(app.session_tokens) >= 3:
             del app.session_tokens[0]
         app.session_tokens.append(token_value)
-    elif authorized["status_code"] == 401:
+    elif auth["status_code"] == 401:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Basic"})
