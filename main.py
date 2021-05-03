@@ -5,6 +5,8 @@ import jwt
 
 from datetime import date
 from typing import Dict
+
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Request, Response, Header, HTTPException, Query, Cookie
@@ -120,38 +122,32 @@ def login_token(auth: dict = Depends(authenticate)):
 
 
 
-def set_response_based_on_format(format: str) -> Response:
-    sc = status.HTTP_200_OK
-    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
-                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
-    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
-
-
-def set_response_based_on_format(format: str) -> Response:
-    sc = status.HTTP_200_OK
-    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
-                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
-    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
-
-
 @app.get('/welcome_session')
-async def welcome_session(request: Request, format: str = ''):
-    try:
-        if not request.cookies.get('session_token'):
-            raise KeyError
-        return set_response_based_on_format(format)
-    except KeyError:
-        return PlainTextResponse('Welcome!', status_code=status.HTTP_401_UNAUTHORIZED)
+async def welcome_session(format: str = Query(None), session_token=Cookie(None)):
+    if session_token is None or session_token not in app.session_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if format == 'json':
+        msg = {"message": "Welcome!"}
+        json_msg = jsonable_encoder(msg)
+        return JSONResponse(content=json_msg)
+    elif format == 'html':
+        return HTMLResponse('<h1>Welcome!</h1>')
+    else:
+        return PlainTextResponse('Welcome!')
 
 
 @app.get('/welcome_token')
-async def welcome_token(request: Request, token: str = '', format: str = ''):
-    try:
-        if request.cookies.get('token') != token:
-            raise KeyError
-        return set_response_based_on_format(format)
-    except KeyError:
-        return Response(status_code=status.HTTP_401_UNAUTHORIZED)
+async def welcome_token(format: str = Query(None),  token: str = ""):
+    if token is False or token not in app.token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if format == 'json':
+        msg = {"message": "Welcome!"}
+        json_msg = jsonable_encoder(msg)
+        return JSONResponse(content=json_msg)
+    elif format == 'html':
+        return HTMLResponse('<h1>Welcome!</h1>')
+    else:
+        return PlainTextResponse('Welcome!')
 
 
 
