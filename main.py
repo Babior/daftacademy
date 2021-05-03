@@ -104,28 +104,36 @@ async def hello():
 
 
 # Task 3.2
-@app.post("/login_session")
-def login_basic(auth: bool = Depends(authenticate)):
-    if auth:
-        session_token = jwt.encode({"magic_key": True}, app.secret_key)
+@app.post("/login_session", status_code=201)
+def login_session(response: Response, authorized: dict = Depends(check_credentials)):
+    if authorized["status_code"] == 200:
+        secret_key = secrets.token_hex(16)
+        session_token = hashlib.sha256(
+            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
         if len(app.session_cookie_tokens) >= 3:
             del app.session_cookie_tokens[0]
         app.session_cookie_tokens.append(session_token)
-        Response.set_cookie(key="session_token", value=session_token)
-    elif not auth:
-        return Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
+        response.set_cookie(key="session_token", value=session_token)
+    elif authorized["status_code"] == 401:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect email or password",
+                            headers={"WWW-Authenticate": "Basic"})
+    return {"message": "Session established"}
 
 
 @app.post("/login_token", status_code=201)
-def login_token(auth: bool = Depends(authenticate)):
-    if not auth:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
-
-    token_value = jwt.encode({"magic_key": True}, app.secret_key)
-    if len(app.session_cookie_tokens) >= 3:
-        del app.session_cookie_tokens[0]
-    app.session_tokens.append(token_value)
+def login_token(authorized: dict = Depends(check_credentials)):
+    if authorized["status_code"] == 200:
+        secret_key = secrets.token_hex(16)
+        token_value = hashlib.sha256(
+            f'{authorized["valid_username"]}{authorized["valid_password"]}{secret_key}'.encode()).hexdigest()
+        if len(app.session_tokens) >= 3:
+            del app.session_tokens[0]
+        app.session_tokens.append(token_value)
+    elif authorized["status_code"] == 401:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Incorrect email or password",
+                            headers={"WWW-Authenticate": "Basic"})
     return {"token": token_value}
 
 
