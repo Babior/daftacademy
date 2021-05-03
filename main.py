@@ -138,7 +138,7 @@ def welcome_token(token: Optional[str] = Query(None), is_format: Message = Depen
         return is_format.return_message()
 
 
-# 3.4
+# Task 3.4
 @app.delete("/logout_session")
 def logout_session(session_token: str = Cookie(None), format: str = Query("")):
     if not session_token or session_token not in app.session_cookie_tokens:
