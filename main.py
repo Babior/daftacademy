@@ -8,7 +8,7 @@ from typing import Dict
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Request, Response, Header, HTTPException, Query, Cookie
-from starlette.responses import HTMLResponse, PlainTextResponse
+from starlette.responses import HTMLResponse, PlainTextResponse, JSONResponse
 
 from typing import Dict, Optional
 
@@ -83,6 +83,29 @@ async def hello():
     today_date = date.today().isoformat()
     content = "<h1>Hello! Today date is {}</h1>".format(today_date)
     return HTMLResponse(content=content)
+
+
+def check_credentials_and_return_status_code(credentials: HTTPBasicCredentials):
+    correct_username = secrets.compare_digest(credentials.username, '4dm1n')
+    correct_password = secrets.compare_digest(credentials.password, 'NotSoSecurePa$$')
+    if not (correct_username and correct_password):
+        return status.HTTP_401_UNAUTHORIZED
+    return status.HTTP_201_CREATED
+
+
+@app.post('/login_session/')
+async def login_session(response: Response, credentials: HTTPBasicCredentials = Depends(app.security)):
+    response.status_code = check_credentials_and_return_status_code(credentials)
+    response.set_cookie('session_token', 'apptoken')
+
+
+@app.post('/login_token')
+async def login_token(credentials: HTTPBasicCredentials = Depends(app.security)):
+    response = JSONResponse()
+    response.content = {'token': 'apptoken'}
+    response.status_code = check_credentials_and_return_status_code(credentials)
+    response.set_cookie('token', 'apptoken')
+    return response
 
 
 # Task 3.2
