@@ -85,29 +85,6 @@ async def hello():
     return HTMLResponse(content=content)
 
 
-def check_credentials_and_return_status_code(credentials: HTTPBasicCredentials):
-    correct_username = secrets.compare_digest(credentials.username, '4dm1n')
-    correct_password = secrets.compare_digest(credentials.password, 'NotSoSecurePa$$')
-    if not (correct_username and correct_password):
-        return status.HTTP_401_UNAUTHORIZED
-    return status.HTTP_201_CREATED
-
-
-@app.post('/login_session/')
-async def login_session(response: Response, credentials: HTTPBasicCredentials = Depends(app.security)):
-    response.status_code = check_credentials_and_return_status_code(credentials)
-    response.set_cookie('session_token', 'apptoken')
-
-
-@app.post('/login_token')
-async def login_token(credentials: HTTPBasicCredentials = Depends(app.security)):
-    response = JSONResponse()
-    response.content = {'token': 'apptoken'}
-    response.status_code = check_credentials_and_return_status_code(credentials)
-    response.set_cookie('token', 'apptoken')
-    return response
-
-
 # Task 3.2
 @app.post("/login_session", status_code=201)
 def login_session(response: Response, auth: dict = Depends(authenticate)):
@@ -140,6 +117,44 @@ def login_token(auth: dict = Depends(authenticate)):
                             detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Basic"})
     return {"token": token_value}
+
+
+
+def set_response_based_on_format(format: str) -> Response:
+    sc = status.HTTP_200_OK
+    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
+                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
+    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
+
+
+def set_response_based_on_format(format: str) -> Response:
+    sc = status.HTTP_200_OK
+    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
+                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
+    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
+
+
+@app.get('/welcome_session')
+async def welcome_session(request: Request, format: str = ''):
+    try:
+        if not request.cookies.get('session_token'):
+            raise KeyError
+        return set_response_based_on_format(format)
+    except KeyError:
+        return PlainTextResponse('Welcome!', status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+@app.get('/welcome_token')
+async def welcome_token(request: Request, token: str = '', format: str = ''):
+    try:
+        if request.cookies.get('token') != token:
+            raise KeyError
+        return set_response_based_on_format(format)
+    except KeyError:
+        return Response(status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+
 
 
 # Task 3.3
