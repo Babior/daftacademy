@@ -121,33 +121,38 @@ def login_token(auth: dict = Depends(authenticate)):
     return {"token": token_value}
 
 
+def set_response_based_on_format(format: str) -> Response:
+    sc = status.HTTP_200_OK
+    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
+                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
+    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
+
+
+def set_response_based_on_format(format: str) -> Response:
+    sc = status.HTTP_200_OK
+    responses = {'json': JSONResponse({"message": "Welcome!"}, status_code=sc),
+                 'html': HTMLResponse('<h1>Welcome!</h1>', status_code=sc)}
+    return responses[format] if format in responses else PlainTextResponse('Welcome!', status_code=sc)
+
 
 @app.get('/welcome_session')
-async def welcome_session(format: str = Query(None), session_token=Cookie(None)):
-    if session_token is None or session_token not in app.session_token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    if format == 'json':
-        msg = {"message": "Welcome!"}
-        json_msg = jsonable_encoder(msg)
-        return JSONResponse(content=json_msg)
-    elif format == 'html':
-        return HTMLResponse('<h1>Welcome!</h1>')
-    else:
-        return PlainTextResponse('Welcome!')
+async def welcome_session(request: Request, format: str = ''):
+    try:
+        if not request.cookies.get('session_token'):
+            raise KeyError
+        return set_response_based_on_format(format)
+    except KeyError:
+        return PlainTextResponse('Welcome!', status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @app.get('/welcome_token')
-async def welcome_token(format: str = Query(None),  token: str = ""):
-    if token is False or token not in app.token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    if format == 'json':
-        msg = {"message": "Welcome!"}
-        json_msg = jsonable_encoder(msg)
-        return JSONResponse(content=json_msg)
-    elif format == 'html':
-        return HTMLResponse('<h1>Welcome!</h1>')
-    else:
-        return PlainTextResponse('Welcome!')
+async def welcome_token(request: Request, token: str = '', format: str = ''):
+    try:
+        if request.cookies.get('token') != token:
+            raise KeyError
+        return set_response_based_on_format(format)
+    except KeyError:
+        return Response(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 
@@ -174,26 +179,31 @@ def welcome_token(token: Optional[str] = Query(None), is_format: Message = Depen
 
 # Task 3.4
 @app.delete("/logout_session")
-def logout_session(session_token: str = Cookie(None), format: str = Query("")):
-    if not session_token or session_token not in app.session_cookie_tokens:
-        raise HTTPException(status_code=401, detail="Unathorised")
-    else:
-        app.session_cookie_tokens.remove(session_token)
-        url = f"/logged_out?format={format}"
-        return RedirectResponse(url=url, status_code=303)
+async def logout_session(format: str = Query(None), session_token=Cookie(None)):
+    if session_token is False or session_token not in app.session_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    app.session_token.remove(session_token)
+    resp = RedirectResponse("/logged_out?format={}".format(format), status_code=302)
+    return resp
 
 
 @app.delete("/logout_token")
-def logout_token(token: Optional[str] = Query(None), format: str = Query("")):
-    if not token or token not in app.session_tokens:
-        raise HTTPException(status_code=401, detail="Unathorised")
-    else:
-        app.session_tokens.remove(token)
-        url = f"/logged_out?format={format}"
-        return RedirectResponse(url=url, status_code=303)
+async def logout_token(format: str = Query(None), token: str = Query(None)):
+    if token is False or token not in app.token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    app.token.remove(token)
+    resp = RedirectResponse("/logged_out?format={}".format(format), status_code=302)
+    return resp
 
 
 @app.get("/logged_out")
-def logged_out(is_format: Message = Depends(Message)):
-    is_format.word = "Logged out"
-    return is_format.return_message()
+async def logged_out(format: str = Query(None)):
+    if format == "json":
+        msg = {"message": "Logged out!"}
+        json_msg = jsonable_encoder(msg)
+        return JSONResponse(json_msg)
+    elif format == "html":
+        msg = "<h1>Logged out!</h1>"
+        return HTMLResponse(content=msg)
+    else:
+        return PlainTextResponse(content="Logged out!")
