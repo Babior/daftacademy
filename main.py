@@ -3,9 +3,9 @@ import hashlib
 from datetime import date, timedelta
 from typing import Dict
 from pydantic import BaseModel
-
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+
 
 class UserIn(BaseModel):
     name: str
@@ -71,7 +71,8 @@ def registration(user: UserIn):
     """
     user_id = app.counter
     register_date = date.today()
-    vaccination_date = register_date + timedelta((sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
+    vaccination_date = register_date + timedelta(
+        (sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
     user_out = UserOut(
         id=user_id,
         name=user.name,
