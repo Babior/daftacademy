@@ -1,135 +1,101 @@
-from fastapi import FastAPI, Request, Response, Cookie, Depends, HTTPException
-from fastapi.templating import Jinja2Templates
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
-import datetime
+import hashlib
+
+from datetime import date, timedelta
+from typing import Dict
 from pydantic import BaseModel
-from hashlib import sha256
-import secrets
-import random
+
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
+
+class UserIn(BaseModel):
+    name: str
+    surname: str
+
+
+class UserOut(BaseModel):
+    id: int
+    name: str
+    surname: str
+    register_date: date
+    vaccination_date: date
+
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-security = HTTPBasic()
-random.seed(datetime.datetime.now())
-
-app.stored_login_session = []
-app.stored_login_token = []
+app.counter: int = 1
+app.users: Dict[int, UserOut] = {}
 
 
-# zad. 3.1
-
-@app.get("/hello")
-def print_date(request: Request, response: Response):
-    return_date = date.today()
-    # response.headers["content-type"] = "text/html"
-    return templates.TemplateResponse("hello.html", {"request": request, "date": return_date})
+# Task 1.1
+@app.get("/")
+def root():
+    return {"message": "Hello world!"}
 
 
-# zad. 3.2
-
-@app.get("/login_session", status_code=201)
-@app.post("/login_session", status_code=201)
-def login_session(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
-    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
-
-    if not (correct_username and correct_password):
-        raise HTTPException(status_code=401)
-
-    session_token = sha256(
-        f"{credentials.username}{credentials.password}{str(random.randint(0, 12345))}".encode()).hexdigest()
-    # session_token = "A" # tymczasowy token
-    response.set_cookie(key="session_token", value=session_token)  # ustawianie cookie
-    app.stored_login_session.append(session_token)  # dodawanie session token
-
-    if len(app.stored_login_session) > 3:
-        app.stored_login_session.pop(0)
+# Task 1.2
+@app.api_route("/method", methods=["GET", "POST", "DELETE", "PUT", "OPTIONS"])
+def define_method(request: Request) -> JSONResponse:
+    """
+    Method to return request method.
+    : param: request
+    : return: JSON response with request method
+    """
+    if request.method == "POST":
+        return JSONResponse({"method": request.method}, status_code=201)
+    return JSONResponse({"method": request.method})
 
 
-@app.get("/login_token", status_code=201)
-@app.post("/login_token", status_code=201)
-def login_token(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
-    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
-
-    if not (correct_username and correct_password):
-        raise HTTPException(status_code=401)
-
-    session_token = sha256(
-        f"{credentials.username}{credentials.password}{str(random.randint(0, 12345))}".encode()).hexdigest()
-    # session_token = "AA" # tymczasowy token
-    app.stored_login_token.append(session_token)  # dodawanie login token
-
-    if len(app.stored_login_token) > 3:
-        app.stored_login_token.pop(0)
-
-    return {"token": session_token}
+# Task 1.3
+@app.get("/auth")
+def authorisation(password: str = "", password_hash: str = ""):
+    """
+    Method to validate hashed password.
+    : param: password, password_hash
+    : return: response HTTP 204 if password hashed by sha512 == password_hash
+    """
+    if password is not None and password_hash is not None and password != "" and password_hash != "":
+        return Response(status_code=401)
+    hashed = hashlib.sha512(password.encode()).hexdigest()
+    if hashed == password_hash:
+        return Response(status_code=204)
+    return Response(status_code=401)
 
 
-# zad. 3.3
-
-@app.get("/welcome_session", status_code=200)
-def welcome_session(response: Response, session_token: str = Cookie(None), format: str = ""):
-    if (session_token not in app.stored_login_session) or (session_token == ""):
-        raise HTTPException(status_code=401, detail="Unathorised")
-
-    if format == 'json':
-        return {"message": "Welcome!"}
-    elif format == 'html':
-        return HTMLResponse(content="<h1>Welcome!</h1>")
-    else:
-        return PlainTextResponse(content="Welcome!")
-
-
-@app.get("/welcome_token", status_code=200)
-def welcome_token(response: Response, token: str, format: str = ""):
-    if (token not in app.stored_login_token) or (token == ""):
-        raise HTTPException(status_code=401, detail="Unathorised")
-
-    if format == 'json':
-        return {"message": "Welcome!"}
-    elif format == 'html':
-        return HTMLResponse(content="<h1>Welcome!</h1>")
-    else:
-        return PlainTextResponse(content="Welcome!")
+# Task 1.4
+@app.post("/register", response_model=UserOut, status_code=201)
+def registration(user: UserIn):
+    """
+    Method to add users to fake db.
+    param: user's name and surname
+    return: user object with id, name, surname, registration date and
+    vaccination date(=registration date + sum of letter in name and surname) HTTP 204 if
+    """
+    user_id = app.counter
+    register_date = date.today()
+    vaccination_date = register_date + timedelta((sum(map(str.isalpha, user.name)) + sum(map(str.isalpha, user.surname))))
+    user_out = UserOut(
+        id=user_id,
+        name=user.name,
+        surname=user.surname,
+        register_date=register_date,
+        vaccination_date=vaccination_date,
+    )
+    app.users[app.counter] = user_out
+    app.counter += 1
+    return user_out
 
 
-# zad. 3.4 // 3.5
+# Task 1.5
+@app.get('/patient/{id}', status_code=404, response_model=UserOut)
+def get_patient(user_id: int):
+    """
+    Method to return users by id.
+    param: user's id
+    return: user object with id, name, surname, registration date and vaccination date
+    """
+    if user_id < 1:
+        return Response(status_code=400, detail="Invalid patient id")
 
-@app.get("/logout_session")
-@app.delete("/logout_session")
-def logout_session(session_token: str = Cookie(None), format: str = ""):
-    if (session_token not in app.stored_login_session) and (session_token not in app.stored_login_token):
-        raise HTTPException(status_code=401, detail="Unathorised")
+    if user_id not in app.users:
+        return Response(status_code=404, detail="Patient not found")
 
-    if session_token in app.stored_login_session:
-        app.stored_login_session.remove(session_token)
-    else:
-        app.stored_login_token.remove(session_token)
-
-    return RedirectResponse(url=f"/logged_out?format={format}", status_code=302)
-
-
-@app.get("/logout_token")
-@app.delete("/logout_token")
-def logout_token(token: str, format: str = ""):
-    if ((token not in app.stored_login_token) and (token not in app.stored_login_session)) or (token == ""):
-        raise HTTPException(status_code=401, detail="Unathorised")
-
-    if token in app.stored_login_token:
-        app.stored_login_token.remove(token)
-    else:
-        app.stored_login_session.remove(token)
-
-    return RedirectResponse(url=f"/logged_out?format={format}", status_code=302)
-
-
-@app.get("/logged_out", status_code=200)
-def logged_out(format: str = ""):
-    if format == 'json':
-        return {"message": "Logged out!"}
-    elif format == 'html':
-        return HTMLResponse(content="<h1>Logged out!</h1>", status_code=200)
-    else:
-        return PlainTextResponse(content="Logged out!", status_code=200)
+    return app.users.get(user_id)
