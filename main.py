@@ -1,6 +1,9 @@
 import sqlite3
+from http.client import HTTPException
 
 from fastapi import FastAPI
+from starlette import status
+from starlette.responses import Response
 
 app = FastAPI()
 
@@ -47,3 +50,13 @@ async def root():
             )
 
     return {"customers": modified}
+
+
+@app.get("/products/{id}")
+async def single_supplier(id: int):
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute(
+        "SELECT ProductID, ProductName FROM Products WHERE ProductID = ?", (id,)).fetchone()
+    if data is None:
+        return Response(status_code=404)
+    return data
