@@ -35,7 +35,7 @@ async def root():
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         "SELECT CustomerID, CompanyName, Address, PostalCode, City, Country FROM Customers;").fetchall()
-    return {"customers": [{"id": int(x["CustomerID"]), "name": x["CompanyName"],
+    return {"customers": [{"id": x["CustomerID"], "name": x["CompanyName"],
                            "full_address": f"{x['Address']} {x['PostalCode']} {x['City']} {x['Country']}"} for x in
                           data]}
 
