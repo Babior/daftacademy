@@ -93,3 +93,21 @@ async def prod_extended():
     return {"products_extended": [
         {"id": x['ProductID'], "name": x["ProductName"], "category": x['CategoryName'], "supplier": x['CompanyName']}
         for x in data]}
+
+
+# Task 4.5
+@app.get("/products/{id}/orders", status_code=200)
+async def order_by_product(id: int):
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute('''
+    SELECT Orders.OrderID, Customers.CompanyName, od.Quantity, ROUND((od.UnitPrice * od.Quantity) - (od.Discount * (od.UnitPrice * od.Quantity))) AS TotalPrice
+    FROM Orders INNER JOIN Customers
+    ON Orders.CustomerID = Customers.CustomerID
+    INNER JOIN "Order Details" od
+    ON Orders.OrderID = od.OrderID
+    WHERE od.ProductID = (SELECT Products.ProductID FROM Products WHERE Products.ProductID = :id);
+    ''',{"id": id}).fetchall()
+    return {"orders": [
+        {"id": x['OrderID'], "customer": x["CompanyName"], "quantity": x['Quantity'], "total_price": x['TotalPrice']}
+        for x in data]}
+
