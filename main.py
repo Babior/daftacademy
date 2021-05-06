@@ -1,8 +1,7 @@
 import sqlite3
-from http.client import HTTPException
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from starlette import status
 from starlette.responses import Response
 
@@ -70,11 +69,27 @@ async def single_product(id: int):
 async def employees(limit: int, offset: int, order: str):
     order_by = ['FirstName', 'LastNAME', 'City']
     if order not in order_by:
-        return Response(status_code=400)
+        raise HTTPException(status_code=400, detail='Wrong order parameter')
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         "SELECT EmployeeID, LastName, FirstName, City FROM Employees ORDER BY:order LIMIT:limit OFFSET :offset",
         {'limit': limit, 'offset': offset, 'order': order}).fetchall()
-    return {"employees": [
+    return Response({"employees": [
         {"id": x['EmployeeID'], "last_name": x['LastName'], "first_name": x['FirstName'], "city": x['City']} for x in
-        data]}
+        data]}, status_code=200)
+
+
+# Task 4.4
+@app.get("/products_extended", status_code=200)
+async def prod_extended():
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute('''
+        SELECT ProductID, ProductName, CategoryName, CompanyName 
+        FROM Products INNER JOIN Categories 
+        ON Products.CategoryID = Categories .CategoryID 
+        INNER JOIN Suppliers 
+        ON Products.SupplierID = Suppliers.SupplierID;
+        ''').fetchall()
+    return {"products_extended": [
+        {"id": x['ProductID'], "name": x["ProductName"], "category": x['CategoryName'], "supplier": x['CompanyName']}
+        for x in data]}
