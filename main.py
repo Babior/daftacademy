@@ -1,10 +1,8 @@
 import sqlite3
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from starlette import status
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 
 app = FastAPI()
 
@@ -22,6 +20,11 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await app.db_connection.close()
+
+
+@app.get("/", status_code=200)
+async def root():
+    return JSONResponse({"message": "Welcome to the club!"})
 
 
 # Task 4.1
@@ -74,7 +77,7 @@ async def single_product(id: int):
 async def employees(limit: int, offset: int, order: str):
     order_by = ['FirstName', 'LastNAME', 'City']
     if order not in order_by:
-        raise HTTPException(status_code=400, detail='Wrong order parameter')
+        return Response(status_code=400)
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         "SELECT EmployeeID, LastName, FirstName, City FROM Employees ORDER BY:order LIMIT:limit OFFSET :offset",
@@ -111,7 +114,7 @@ async def order_by_product(id: int):
     INNER JOIN "Order Details" od
     ON Orders.OrderID = od.OrderID
     WHERE od.ProductID = (SELECT Products.ProductID FROM Products WHERE Products.ProductID = :id);
-    ''',{"id": id}).fetchall()
+    ''', {"id": id}).fetchall()
     if data is None or len(data) == 0:
         return Response(status_code=404)
     return {"orders": [
@@ -121,7 +124,7 @@ async def order_by_product(id: int):
 
 # Task 4.6
 @app.post("/categories", status_code=201)
-async def order_by_product(category: Category):
+async def add_category(category: Category):
     cursor = app.db_connection.execute(
         f"INSERT INTO Categories (CategoryName) VALUES ('{category.category_name}')"
     )
@@ -131,3 +134,30 @@ async def order_by_product(category: Category):
         "name": category.category_name
     }
 
+
+@app.post("/categories/{id}", status_code=200)
+async def update_category(category_id: int, category: Category):
+    count = app.db_connection.execute("SELECT COUNT(*) FROM Categories").fetchone()
+    if category_id < 0 or category_id > count[0]:
+        return Response(status_code=404)
+    cursor = app.db_connection.execute(
+        "UPDATE Categories SET CategoryName = ? WHERE CategoryID = ?", (
+            category.category_name, category_id)
+    )
+    app.db_connection.commit()
+
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute(
+        """SELECT CategoryID AS id, CategoryName AS name FROM Categories WHERE CategoryID = ?""",
+        (category_id,)).fetchone()
+    return data
+
+
+@app.delete("/categories/{id}", status_code=200)
+async def delete_category(category_id: int):
+    count = app.db_connection.execute("SELECT COUNT(*) FROM Categories").fetchone()
+    if category_id < 0 or category_id > count[0]:
+        return Response(status_code=404)
+    cursor = app.db_connection.execute("DELETE FROM Categories WHERE CategoryID = ?", (category_id,))
+    app.db_connection.commit()
+    return {"deleted": cursor.rowcount}
