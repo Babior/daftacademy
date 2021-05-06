@@ -2,10 +2,15 @@ import sqlite3
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from starlette import status
 from starlette.responses import Response
 
 app = FastAPI()
+
+
+class Category(BaseModel):
+    category_name: str
 
 
 @app.on_event("startup")
@@ -112,4 +117,17 @@ async def order_by_product(id: int):
     return {"orders": [
         {"id": x['OrderID'], "customer": x["CompanyName"], "quantity": x['Quantity'], "total_price": x['TotalPrice']}
         for x in data]}
+
+
+# Task 4.6
+@app.post("/categories", status_code=200)
+async def order_by_product(category: Category):
+    cursor = app.db_connection.execute(
+        f"INSERT INTO Categories (CategoryName) VALUES ('{category.category_name}')"
+    )
+    app.db_connection.commit()
+    return {
+        "id": cursor.lastrowid,
+        "name": category.category_name
+    }
 
