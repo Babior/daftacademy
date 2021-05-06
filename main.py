@@ -59,4 +59,4 @@ async def single_supplier(id: int):
         "SELECT ProductID, ProductName FROM Products WHERE ProductID = ?", (id,)).fetchone()
     if data is None:
         return Response(status_code=404)
-    return data
+    return {"id": data['ProductID'], "name": data['ProductName']}
