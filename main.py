@@ -1,5 +1,6 @@
 import sqlite3
 from http.client import HTTPException
+from typing import Optional
 
 from fastapi import FastAPI
 from starlette import status
@@ -19,8 +20,9 @@ async def shutdown():
     await app.db_connection.close()
 
 
+# Task 4.1
 @app.get("/categories", status_code=200)
-async def root():
+async def all_categories():
     app.db_connection.row_factory = sqlite3.Row
     categories = app.db_connection.execute(
         "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryID;").fetchall()
@@ -28,7 +30,7 @@ async def root():
 
 
 @app.get("/customers", status_code=200)
-async def root():
+async def all_customers():
     app.db_connection.row_factory = sqlite3.Row
     customers = app.db_connection.execute(
         "SELECT CustomerID, CompanyName, Address, PostalCode, City, Country FROM Customers;").fetchall()
@@ -52,11 +54,27 @@ async def root():
     return {"customers": modified}
 
 
-@app.get("/products/{id}")
-async def single_supplier(id: int):
+# Task 4.2
+@app.get("/products/{id}", status_code=200)
+async def single_product(id: int):
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         "SELECT ProductID, ProductName FROM Products WHERE ProductID = ?", (id,)).fetchone()
     if data is None:
         return Response(status_code=404)
     return {"id": data['ProductID'], "name": data['ProductName']}
+
+
+# Task 4.3
+@app.get("/employees", status_code=200)
+async def employees(limit: int, offset: int, order: str):
+    order_by = ['FirstName', 'LastNAME', 'City']
+    if order not in order_by:
+        return Response(status_code=400)
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute(
+        "SELECT EmployeeID, LastName, FirstName, City FROM Employees ORDER BY:order LIMIT:limit OFFSET :offset",
+        {'limit': limit, 'offset': offset, 'order': order}).fetchall()
+    return {"employees": [
+        {"id": x['EmployeeID'], "last_name": x['LastName'], "first_name": x['FirstName'], "city": x['City']} for x in
+        data]}
