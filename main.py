@@ -107,6 +107,8 @@ async def order_by_product(id: int):
     ON Orders.OrderID = od.OrderID
     WHERE od.ProductID = (SELECT Products.ProductID FROM Products WHERE Products.ProductID = :id);
     ''',{"id": id}).fetchall()
+    if data is None or len(data) == 0:
+        return Response(status_code=404)
     return {"orders": [
         {"id": x['OrderID'], "customer": x["CompanyName"], "quantity": x['Quantity'], "total_price": x['TotalPrice']}
         for x in data]}
