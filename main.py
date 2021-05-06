@@ -100,7 +100,7 @@ async def prod_extended():
 async def order_by_product(id: int):
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute('''
-    SELECT Orders.OrderID, Customers.CompanyName, od.Quantity, ROUND((od.UnitPrice * od.Quantity) - (od.Discount * (od.UnitPrice * od.Quantity))) AS TotalPrice
+    SELECT Orders.OrderID, Customers.CompanyName, od.Quantity, ROUND((od.UnitPrice * od.Quantity) - (od.Discount * (od.UnitPrice * od.Quantity)), 2) AS TotalPrice
     FROM Orders INNER JOIN Customers
     ON Orders.CustomerID = Customers.CustomerID
     INNER JOIN "Order Details" od
