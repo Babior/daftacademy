@@ -120,7 +120,7 @@ async def order_by_product(id: int):
 
 
 # Task 4.6
-@app.post("/categories", status_code=200)
+@app.post("/categories", status_code=201)
 async def order_by_product(category: Category):
     cursor = app.db_connection.execute(
         f"INSERT INTO Categories (CategoryName) VALUES ('{category.category_name}')"
