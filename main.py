@@ -28,9 +28,9 @@ async def root():
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         '''
-        SELECT CustomerID, CompanyName, Address, PostalCode, City, Country 
-        FROM Customers 
-        WHERE Address IS NOT NULL AND PostalCode IS NOT NULL;
+        SELECT CustomerID, CompanyName, IFNULL(Address, 'None') AS Address, 
+        IFNULL(PostalCode, 'None') AS PostalCode, City, Country 
+        FROM Customers;
         ''').fetchall()
     return {"customers": [{"id": x["CustomerID"], "name": x["CompanyName"],
                            "full_address": f"{x['Address']} {x['PostalCode']} {x['City']} {x['Country']}"} for x in
