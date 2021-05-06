@@ -23,14 +23,24 @@ async def root():
     return {"categories": data}
 
 
-@app.get("/customers", status_code=200)
-async def root():
+@app.get("/customers")
+async def customers():
     app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute('''
-        SELECT CustomerID, CompanyName, IFNULL(Address, '') AS Address, 
-        IFNULL(PostalCode, '') AS PostalCode, City, Country 
-        FROM Customers;
-        ''').fetchall()
-    return {"customers": [{"id": x["CustomerID"], "name": x["CompanyName"],
-                           "full_address": f"{x['Address']} {x['PostalCode']} {x['City']} {x['Country']}"} for x in
-                          data]}
+    data = app.db_connection.execute(
+        "SELECT CustomerId, CompanyName, Address, PostalCode, City, Country FROM customers").fetchall()
+    refactored = []
+    for row in data:
+        keys = ['Address', 'PostalCode', 'City', 'Country']
+        full_address = []
+        for key in keys:
+            if row[key]:
+                full_address.append(row[key])
+
+        refactored.append(
+            {'id': row['CustomerId'],
+             'name': row['CompanyName'],
+             'full_address': ' '.join(full_address)}
+        )
+    return {
+        'customers': refactored
+    }
