@@ -20,16 +20,15 @@ async def shutdown():
 async def root():
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute("SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryID;").fetchall()
-    return {"categories": [{"id": x['CategoryID'], "name": x["CategoryName"]} for x in data]}
+    return {"categories": data}
 
 
 @app.get("/customers", status_code=200)
 async def root():
     app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute(
-        '''
-        SELECT CustomerID, CompanyName, IFNULL(Address, 'None') AS Address, 
-        IFNULL(PostalCode, 'None') AS PostalCode, City, Country 
+    data = app.db_connection.execute('''
+        SELECT CustomerID, CompanyName, IFNULL(Address, '') AS Address, 
+        IFNULL(PostalCode, '') AS PostalCode, City, Country 
         FROM Customers;
         ''').fetchall()
     return {"customers": [{"id": x["CustomerID"], "name": x["CompanyName"],
