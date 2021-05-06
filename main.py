@@ -52,7 +52,7 @@ async def root():
     return {"customers": modified}
 
 
-@app.get("///products/{id}")
+@app.get("/products/{id}")
 async def single_supplier(id: int):
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
