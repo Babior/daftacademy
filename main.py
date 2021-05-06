@@ -19,28 +19,31 @@ async def shutdown():
 @app.get("/categories", status_code=200)
 async def root():
     app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute("SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryID;").fetchall()
-    return {"categories": data}
+    categories = app.db_connection.execute(
+        "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryID;").fetchall()
+    return {"categories": [{"id": x['CategoryID'], "name": x["CategoryName"]} for x in categories]}
 
 
-@app.get("/customers")
-async def customers():
+@app.get("/customers", status_code=200)
+async def root():
     app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute(
-        "SELECT CustomerId, CompanyName, Address, PostalCode, City, Country FROM customers").fetchall()
-    refactored = []
-    for row in data:
-        keys = ['Address', 'PostalCode', 'City', 'Country']
-        full_address = []
-        for key in keys:
-            if row[key]:
-                full_address.append(row[key])
+    customers = app.db_connection.execute(
+        "SELECT CustomerID, CompanyName, Address, PostalCode, City, Country FROM Customers;").fetchall()
+    modified = []
+    for tuple in customers:
+        keys = [tuple['Address'], tuple['PostalCode'], tuple['City'], tuple['Country']]
+        full_address = str
+        if None in keys:
+            modified.append(
+                {'id': tuple['CustomerID'],
+                 'name': tuple['CompanyName'],
+                 'full_address': None}
+            )
+        else:
+            modified.append(
+                {'id': tuple['CustomerID'],
+                 'name': tuple['CompanyName'],
+                 'full_address': f"{tuple['Address']} {tuple['PostalCode']} {tuple['City']} {tuple['Country']}"}
+            )
 
-        refactored.append(
-            {'id': row['CustomerId'],
-             'name': row['CompanyName'],
-             'full_address': ' '.join(full_address)}
-        )
-    return {
-        'customers': refactored
-    }
+    return {"customers": modified}
