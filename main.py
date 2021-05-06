@@ -16,13 +16,6 @@ async def shutdown():
     await app.db_connection.close()
 
 
-@app.get("/data")
-async def root():
-    cursor = app.db_connection.execute("SELECT ProductName FROM Products")
-    data = cursor.fetchall()
-    return {"data": data}
-
-
 @app.get("/categories", status_code=200)
 async def root():
     app.db_connection.row_factory = sqlite3.Row
