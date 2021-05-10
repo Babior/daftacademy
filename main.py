@@ -333,14 +333,12 @@ async def order_by_product(id: int):
 # Task 4.6
 @app.post("/categories", status_code=201)
 async def add_category(category: Category):
-    cursor = app.db_connection.execute(
-        f"INSERT INTO Categories (CategoryName) VALUES ('{category.category_name}')"
-    )
+    cursor = app.db_connection.execute('''INSERT INTO Categories (CategoryName) VALUES (?)''', (category.name, ))
     app.db_connection.commit()
-    return {
-        "id": cursor.lastrowid,
-        "name": category.category_name
-    }
+    app.db_connection.row_factory = sqlite3.Row
+    new_category_id = cursor.lastrowid
+    category = app.db_connection.execute('''SELECT CategoryID id, CategoryName name FROM Categories WHERE CategoryID = ?''', (new_category_id, )).fetchone()
+    return category
 
 
 @app.post("/categories/{id}", status_code=200)
@@ -353,7 +351,6 @@ async def update_category(category_id: int, category: Category):
             category.category_name, category_id)
     )
     app.db_connection.commit()
-
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         """SELECT CategoryID AS id, CategoryName AS name FROM Categories WHERE CategoryID = ?""",
@@ -371,41 +368,43 @@ async def delete_category(category_id: int):
     return {"deleted": cursor.rowcount}
 
 
-# neterfner
-@app.post("/categories", status_code=201)
-async def add_category(category: Category):
-    cursor = app.db_connection.execute('''INSERT INTO Categories (CategoryName)
-                                        VALUES (?)
-                                        ''', (category.name, )
-    )
-    app.db_connection.commit()
-    app.db_connection.row_factory = sqlite3.Row
-    new_category_id = cursor.lastrowid
-    category = app.db_connection.execute('''SELECT CategoryID id,
-                                        CategoryName name FROM Categories
-                                        WHERE CategoryID = ?''',
-                                        (new_category_id, )).fetchone()
-    return category
-
-@app.put("/categories/{id}", status_code=201)
-async def update_category(id: int, category: Category):
-    cursor = app.db_connection.execute('''UPDATE Categories
-                                        SET CategoryName = ?
-                                        WHERE CategoryID = ?
-                                        ''', (category.name, id))
-    app.db_connection.commit()
-    app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute('''SELECT CategoryID id, CategoryName name
-                                    FROM Categories WHERE CategoryID = ?''',
-                                    (id, )).fetchone()
-
-    return data
-
-@app.delete("/categories/{id}", status_code=200)
-async def delete_category(id: int):
-    cursor = app.db_connection.execute(
-        "DELETE FROM Categories WHERE CategoryID = ?", (id, ))
-    app.db_connection.commit()
-    if not cursor.rowcount:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return {"deleted": cursor.rowcount}
+#Hubert
+# @app.post("/categories")
+# async def add_category(category: Category, response: Response):
+#     cursor = app.db_connection.cursor()
+#     cursor.execute(
+#         'INSERT INTO Categories (CategoryName) VALUES (?)', (category.name, )
+#     )
+#     app.db_connection.commit()
+#     new_id = cursor.lastrowid
+#     response.status_code = 201
+#     return Category(id=new_id, name=category.name)
+#
+#
+# @app.put("/categories/{id}")
+# async def modify_category(id: int, category: Category):
+#     results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchall()
+#     if len(results) == 0:
+#         raise HTTPException(status_code=404, detail="No such category")
+#     app.db_connection.execute(
+#         'UPDATE Categories SET CategoryName=:name WHERE CategoryID=:id', {"name": category.name, 'id': id}
+#     )
+#     app.db_connection.commit()
+#     results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchone()
+#     return Category(id=results[0], name=results[1])
+#
+#
+# @app.delete("/categories/{id}")
+# async def delete_category(id: int):
+#     results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchall()
+#     if len(results) == 0:
+#         raise HTTPException(status_code=404, detail="No such category")
+#     app.db_connection.execute(
+#         'PRAGMA foreign_keys=off;'
+#     )
+#     app.db_connection.execute(
+#         'DELETE FROM Categories WHERE CategoryID=:id', {'id': id}
+#     )
+#     app.db_connection.commit()
+#     msg = {"deleted": 1}
+#     return JSONResponse(status_code=200, content=msg)
