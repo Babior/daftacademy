@@ -110,7 +110,7 @@ def response_welcome_msg(format: str):
 
 
 # Task 3.1
-@app.get("/hello", response_class=HTMLResponse)
+@app.get("/hello", response_class=HTMLResponse, tags=['Lesson 3'])
 def read_root_hello():
     return f"""
     <html>
@@ -125,7 +125,7 @@ def read_root_hello():
 
 
 # Task 3.2
-@app.post("/login_session", status_code=201, response_class=HTMLResponse)
+@app.post("/login_session", status_code=201, response_class=HTMLResponse, tags=['Lesson 3'])
 def create_session(
         request: Request, response: Response, auth: bool = Depends(auth_basic_auth)
 ):
@@ -135,7 +135,7 @@ def create_session(
     return ""
 
 
-@app.post("/login_token", status_code=201)
+@app.post("/login_token", status_code=201, tags=['Lesson 3'])
 def create_token(request: Request, auth: bool = Depends(auth_basic_auth)):
     token = generate_token(request)
     add_token(token, "api_token")
@@ -143,21 +143,21 @@ def create_token(request: Request, auth: bool = Depends(auth_basic_auth)):
 
 
 # Task 3.3
-@app.get("/welcome_session")
+@app.get("/welcome_session", tags=['Lesson 3'])
 def show_welcome_session(received_token: str = Depends(auth_session), format: str = ""):
     with response_class(format) as resp_cls:
         with response_welcome_msg(format) as resp_msg:
             return resp_cls(content=resp_msg)
 
 
-@app.get("/welcome_token")
-def show_welcome_token(received_token: str = Depends(auth_token), format: str = ""):
+@app.get("/welcome_token", tags=['Lesson 3'])
+def show_welcome_token(received_token: str = Depends(auth_token), format: str = "", tags=['Lesson 3']):
     with response_class(format) as resp_cls:
         with response_welcome_msg(format) as resp_msg:
             return resp_cls(content=resp_msg)
 
 
-@app.get("/logged_out")
+@app.get("/logged_out", tags=['Lesson 3'])
 def logged_out(format: str = ""):
     with response_class(format) as resp_cls:
         if format == "json":
@@ -169,7 +169,7 @@ def logged_out(format: str = ""):
 
 
 # Task 3.4
-@app.delete("/logout_session")
+@app.delete("/logout_session", tags=['Lesson 3'])
 def logout_session(received_token: str = Depends(auth_session), format: str = ""):
     remove_token(received_token, "session_token")
     return RedirectResponse(
@@ -177,7 +177,7 @@ def logout_session(received_token: str = Depends(auth_session), format: str = ""
     )
 
 
-@app.delete("/logout_token")
+@app.delete("/logout_token", tags=['Lesson 3'])
 def logout_token(received_token: str = Depends(auth_token), format: str = ""):
     remove_token(received_token, "api_token")
     return RedirectResponse(
@@ -186,7 +186,7 @@ def logout_token(received_token: str = Depends(auth_token), format: str = ""):
 
 
 # Lesson 4
-@app.on_event("startup")
+@app.on_event("startup",)
 async def startup():
     app.db_connection = sqlite3.connect("northwind.db")
     app.db_connection.text_factory = lambda b: b.decode(errors="ignore")  # northwind specific
@@ -197,13 +197,8 @@ async def shutdown():
     await app.db_connection.close()
 
 
-@app.get("/", status_code=200)
-async def root():
-    return JSONResponse({"message": "Welcome to the club!"})
-
-
 # Task 4.1
-@app.get("/categories", status_code=200)
+@app.get("/categories", status_code=200, tags=['Lesson 4'])
 async def all_categories():
     app.db_connection.row_factory = sqlite3.Row
     categories = app.db_connection.execute(
@@ -211,7 +206,7 @@ async def all_categories():
     return {"categories": [{"id": x['CategoryID'], "name": x["CategoryName"]} for x in categories]}
 
 
-@app.get("/customers", status_code=200)
+@app.get("/customers", status_code=200, tags=['Lesson 4'])
 async def all_customers():
     app.db_connection.row_factory = sqlite3.Row
     customers = app.db_connection.execute(
@@ -237,7 +232,7 @@ async def all_customers():
 
 
 # Task 4.2
-@app.get("/products/{id}", status_code=200)
+@app.get("/products/{id}", status_code=200, tags=['Lesson 4'])
 async def single_product(id: int):
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
@@ -269,7 +264,7 @@ async def single_product(id: int):
 #                  OFFSET 2''', {'order': order}).fetchall()
 #     return {"employees": data}
 
-@app.get('/employees')
+@app.get('/employees', tags=['Lesson 4'])
 async def employees(limit: int = 0, offset: int = 0, order: str = '') -> Dict:
     order_dict = {'first_name': 'FirstName', 'last_name': 'LastName', 'city': 'City'}
     try:
@@ -296,7 +291,7 @@ async def employees(limit: int = 0, offset: int = 0, order: str = '') -> Dict:
 
 
 # Task 4.4
-@app.get("/products_extended", status_code=200)
+@app.get("/products_extended", status_code=200, tags=['Lesson 4'])
 async def prod_extended():
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute('''
@@ -312,7 +307,7 @@ async def prod_extended():
 
 
 # Task 4.5
-@app.get("/products/{id}/orders", status_code=200)
+@app.get("/products/{id}/orders", status_code=200, tags=['Lesson 4'])
 async def order_by_product(id: int):
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute('''
@@ -366,45 +361,46 @@ async def order_by_product(id: int):
 #     cursor = app.db_connection.execute("DELETE FROM Categories WHERE CategoryID = ?", (category_id,))
 #     app.db_connection.commit()
 #     return {"deleted": cursor.rowcount}
+@app.get('/categories', tags=['Lesson 4'])
+async def categories():
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute('''
+        SELECT CategoryID id, CategoryName name
+        FROM Categories
+        ORDER BY CategoryID
+    ''').fetchall()
+    return {'categories': data}
 
 
-#Hubert
-@app.post("/categories")
-async def add_category(category: Category, response: Response):
+@app.put('/categories/{category_id}', tags=['Lesson 4'])
+async def categories(name: str, category_id: int):
     cursor = app.db_connection.cursor()
-    cursor.execute(
-        'INSERT INTO Categories (CategoryName) VALUES (?)', (category.name, )
-    )
+    data = cursor.execute('''
+        SELECT CategoryID FROM Categories WHERE CategoryID = :category_id
+    ''', {'category_id': category_id}).fetchone()
+
+    if not data:
+        raise HTTPException(404, f"Category id: {category_id} Not Found")
+    cursor = app.db_connection.cursor()
+    cursor.execute('''
+            UPDATE Categories SET CategoryName = :name WHERE CategoryID = :category_id
+        ''', {'category_id': category_id, 'name': name.name})
     app.db_connection.commit()
-    new_id = cursor.lastrowid
-    response.status_code = 201
-    return Category(id=new_id, name=category.name)
+    return {'id': category_id, 'name': name.name}
 
 
-@app.put("/categories/{id}")
-async def modify_category(id: int, category: Category):
-    results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchall()
-    if len(results) == 0:
-        raise HTTPException(status_code=404, detail="No such category")
-    app.db_connection.execute(
-        'UPDATE Categories SET CategoryName=:name WHERE CategoryID=:id', {"name": category.name, 'id': id}
-    )
+@app.delete('/categories/{category_id}', tags=['Lesson 4'])
+async def categories(category_id: int):
+    cursor = app.db_connection.cursor()
+    data = cursor.execute('''
+        SELECT CategoryID FROM Categories WHERE CategoryID = :category_id
+    ''', {'category_id': category_id}).fetchone()
+
+    if not data:
+        raise HTTPException(404, f"Category id: {category_id} Not Found")
+    cursor = app.db_connection.cursor()
+    cursor.execute('''
+            DELETE FROM Categories WHERE CategoryID = :category_id
+        ''', {'category_id': category_id}).fetchone()
     app.db_connection.commit()
-    results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchone()
-    return Category(id=results[0], name=results[1])
-
-
-@app.delete("/categories/{id}")
-async def delete_category(id: int):
-    results = app.db_connection.execute('SELECT * FROM Categories WHERE CategoryID=?', (id, )).fetchall()
-    if len(results) == 0:
-        raise HTTPException(status_code=404, detail="No such category")
-    app.db_connection.execute(
-        'PRAGMA foreign_keys=off;'
-    )
-    app.db_connection.execute(
-        'DELETE FROM Categories WHERE CategoryID=:id', {'id': id}
-    )
-    app.db_connection.commit()
-    msg = {"deleted": 1}
-    return JSONResponse(status_code=200, content=msg)
+    return {'deleted': 1}
