@@ -365,16 +365,13 @@ async def order_by_product(id: int):
 class Name(BaseModel):
     name: str
 
-
-@app.get('/categories', tags=['fourth_lecture'])
-async def categories():
-    app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute('''
-        SELECT CategoryID id, CategoryName name
-        FROM Categories
-        ORDER BY CategoryID
-    ''').fetchall()
-    return {'categories': data}
+@app.post('/categories', tags=['fourth_lecture'])
+async def categories(name: Name):
+    cursor = app.db_connection.execute(
+        f"INSERT INTO Categories (CategoryName) VALUES ('{name.name}')"
+    )
+    app.db_connection.commit()
+    return JSONResponse({"id": cursor.lastrowid, "name": name.name}, status_code=status.HTTP_201_CREATED)
 
 
 @app.put('/categories/{category_id}', tags=['fourth_lecture'])
