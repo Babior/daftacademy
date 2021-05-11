@@ -362,10 +362,9 @@ async def order_by_product(id: int):
 @app.post('/categories', tags=['fourth_lecture'])
 async def categories(name: str):
     cursor = app.db_connection.execute(
-        f"INSERT INTO Categories (CategoryName) VALUES ('{name.name}')"
-    )
+        f"INSERT INTO Categories (CategoryName) VALUES ('{name}')")
     app.db_connection.commit()
-    return JSONResponse({"id": cursor.lastrowid, "name": name.name}, status_code=status.HTTP_201_CREATED)
+    return JSONResponse({"id": cursor.lastrowid, "name": name}, status_code=status.HTTP_201_CREATED)
 
 
 @app.put('/categories/{category_id}', tags=['fourth_lecture'])
@@ -380,9 +379,9 @@ async def categories(name: str, category_id: int):
     cursor = app.db_connection.cursor()
     cursor.execute('''
             UPDATE Categories SET CategoryName = :name WHERE CategoryID = :category_id
-        ''', {'category_id': category_id, 'name': name.name})
+        ''', {'category_id': category_id, 'name': name})
     app.db_connection.commit()
-    return {'id': category_id, 'name': name.name}
+    return {'id': category_id, 'name': name}
 
 
 @app.delete('/categories/{category_id}', tags=['fourth_lecture'])
