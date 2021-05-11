@@ -243,27 +243,6 @@ async def single_product(id: int):
 
 
 # Task 4.3
-# @app.get("/employees", status_code=200)
-# async def get_employees(limit: int, offset: int, order: str = "id"):
-#     order_by = ['EmployeeID', 'FirstName', 'LastName', 'City', "id", "last_name", "first_name", "city"]
-#     if order not in order_by:
-#         return Response(status_code=400)
-#     app.db_connection.row_factory = sqlite3.Row
-#     # data = app.db_connection.execute('''
-#     #             SELECT EmployeeID id, LastName last_name, FirstName first_name, City city
-#     #             FROM Employees
-#     #             ORDER BY:order ASC
-#     #             LIMIT:limit
-#     #             OFFSET :offset''',
-#     #             {'limit': limit, 'offset': offset, 'order': order}).fetchall()
-#     data = app.db_connection.execute('''
-#                  SELECT EmployeeID id, LastName last_name, FirstName first_name, City city
-#                  FROM Employees
-#                  ORDER BY {order}
-#                  LIMIT 5
-#                  OFFSET 2''', {'order': order}).fetchall()
-#     return {"employees": data}
-
 @app.get('/employees', tags=['Lesson 4'])
 async def employees(limit: int = 0, offset: int = 0, order: str = '') -> Dict:
     order_dict = {'first_name': 'FirstName', 'last_name': 'LastName', 'city': 'City'}
@@ -326,43 +305,7 @@ async def order_by_product(id: int):
 
 
 # Task 4.6
-# @app.post("/categories", status_code=201)
-# async def add_category(category: Category):
-#     cursor = app.db_connection.execute('''INSERT INTO Categories (CategoryName) VALUES (?)''', (category.name, ))
-#     app.db_connection.commit()
-#     app.db_connection.row_factory = sqlite3.Row
-#     new_category_id = cursor.lastrowid
-#     category = app.db_connection.execute('''SELECT CategoryID id, CategoryName name FROM Categories WHERE CategoryID = ?''', (new_category_id, )).fetchone()
-#     return category
-#
-#
-# @app.post("/categories/{id}", status_code=200)
-# async def update_category(category_id: int, category: Category):
-#     count = app.db_connection.execute("SELECT COUNT(*) FROM Categories").fetchone()
-#     if category_id < 0 or category_id > count[0]:
-#         return Response(status_code=404)
-#     cursor = app.db_connection.execute(
-#         "UPDATE Categories SET CategoryName = ? WHERE CategoryID = ?", (
-#             category.category_name, category_id)
-#     )
-#     app.db_connection.commit()
-#     app.db_connection.row_factory = sqlite3.Row
-#     data = app.db_connection.execute(
-#         """SELECT CategoryID AS id, CategoryName AS name FROM Categories WHERE CategoryID = ?""",
-#         (category_id,)).fetchone()
-#     return data
-#
-#
-# @app.delete("/categories/{id}", status_code=200)
-# async def delete_category(category_id: int):
-#     count = app.db_connection.execute("SELECT COUNT(*) FROM Categories").fetchone()
-#     if category_id < 0 or category_id > count[0]:
-#         return Response(status_code=404)
-#     cursor = app.db_connection.execute("DELETE FROM Categories WHERE CategoryID = ?", (category_id,))
-#     app.db_connection.commit()
-#     return {"deleted": cursor.rowcount}
-
-@app.post('/categories', tags=['fourth_lecture'])
+@app.post('/categories', tags=['Lesson 4'])
 async def categories(category: Category):
     cursor = app.db_connection.execute(
         f"INSERT INTO Categories (CategoryName) VALUES ('{category.name}')"
@@ -371,7 +314,7 @@ async def categories(category: Category):
     return JSONResponse({"id": cursor.lastrowid, "name": category.name}, status_code=status.HTTP_201_CREATED)
 
 
-@app.put('/categories/{category_id}', tags=['fourth_lecture'])
+@app.put('/categories/{category_id}', tags=['Lesson 4'])
 async def categories(category: Category, category_id: int):
     cursor = app.db_connection.cursor()
     data = cursor.execute('''
@@ -388,7 +331,7 @@ async def categories(category: Category, category_id: int):
     return {'id': category_id, 'name': category.name}
 
 
-@app.delete('/categories/{category_id}', tags=['fourth_lecture'])
+@app.delete('/categories/{category_id}', tags=['Lesson 4'])
 async def categories(category_id: int):
     cursor = app.db_connection.cursor()
     data = cursor.execute('''
