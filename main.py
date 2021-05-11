@@ -24,8 +24,11 @@ app.api_token: List[str] = []
 app.session_token: List[str] = []
 app.token_limits = 3
 
-
 app = FastAPI()
+
+
+class Category(BaseModel):
+    name: str
 
 
 def add_token(token: str, cache_ns: str):
@@ -360,15 +363,16 @@ async def order_by_product(id: int):
 #     return {"deleted": cursor.rowcount}
 
 @app.post('/categories', tags=['fourth_lecture'])
-async def categories(name: str):
+async def categories(category: Category):
     cursor = app.db_connection.execute(
-        f"INSERT INTO Categories (CategoryName) VALUES ('{name}')")
+        f"INSERT INTO Categories (CategoryName) VALUES ('{category.name}')"
+    )
     app.db_connection.commit()
-    return JSONResponse({"id": cursor.lastrowid, "name": name}, status_code=status.HTTP_201_CREATED)
+    return JSONResponse({"id": cursor.lastrowid, "name": category.name}, status_code=status.HTTP_201_CREATED)
 
 
 @app.put('/categories/{category_id}', tags=['fourth_lecture'])
-async def categories(name: str, category_id: int):
+async def categories(category: Category, category_id: int):
     cursor = app.db_connection.cursor()
     data = cursor.execute('''
         SELECT CategoryID FROM Categories WHERE CategoryID = :category_id
@@ -379,9 +383,9 @@ async def categories(name: str, category_id: int):
     cursor = app.db_connection.cursor()
     cursor.execute('''
             UPDATE Categories SET CategoryName = :name WHERE CategoryID = :category_id
-        ''', {'category_id': category_id, 'name': name})
+        ''', {'category_id': category_id, 'name': category.name})
     app.db_connection.commit()
-    return {'id': category_id, 'name': name}
+    return {'id': category_id, 'name': category.name}
 
 
 @app.delete('/categories/{category_id}', tags=['fourth_lecture'])
