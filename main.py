@@ -24,11 +24,8 @@ app.api_token: List[str] = []
 app.session_token: List[str] = []
 app.token_limits = 3
 
+
 app = FastAPI()
-
-
-class Category(BaseModel):
-    category_name: str
 
 
 def add_token(token: str, cache_ns: str):
@@ -362,11 +359,8 @@ async def order_by_product(id: int):
 #     app.db_connection.commit()
 #     return {"deleted": cursor.rowcount}
 
-class Name(BaseModel):
-    name: str
-
 @app.post('/categories', tags=['fourth_lecture'])
-async def categories(name: Name):
+async def categories(name: str):
     cursor = app.db_connection.execute(
         f"INSERT INTO Categories (CategoryName) VALUES ('{name.name}')"
     )
@@ -375,7 +369,7 @@ async def categories(name: Name):
 
 
 @app.put('/categories/{category_id}', tags=['fourth_lecture'])
-async def categories(name: Name, category_id: int):
+async def categories(name: str, category_id: int):
     cursor = app.db_connection.cursor()
     data = cursor.execute('''
         SELECT CategoryID FROM Categories WHERE CategoryID = :category_id
