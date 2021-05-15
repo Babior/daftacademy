@@ -1,12 +1,14 @@
 import os
+import psycopg2
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = os.getenv("postgresql://postgres:DaftAcademy@127.0.0.1:5432/northwind")
+SQLALCHEMY_DATABASE_URL = os.getenv('DATABASE_URL')
 
-engine = create_engine("postgresql://postgres:DaftAcademy@127.0.0.1:5432/northwind")
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+conn = psycopg2.connect(SQLALCHEMY_DATABASE_URL, sslmode='require')
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=conn)
 
 
 # Dependency
