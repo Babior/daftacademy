@@ -10,3 +10,4 @@ utils~=1.0.1
 setuptools~=49.2.1
 starlette~=0.13.6
 PyJWT==2.1.0
+SQLAlchemy==1.4.15
