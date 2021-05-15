@@ -10,7 +10,7 @@ from .database import get_db
 router = APIRouter()
 
 
-@router.get("/shippers", response_model=List[schemas.Shipper])
+@router.get("/", response_model=List[schemas.Shipper])
 async def get_shippers(db: Session = Depends(get_db)):
     return crud.get_shippers(db)
 
