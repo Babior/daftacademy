@@ -10,6 +10,6 @@ services:
       - ./migrations:/docker-entrypoint-initdb.d
       - ./:/home/app/
     ports:
-      - "8000:5432"
+      - "5000:5432"
 volumes:
   postgres:
