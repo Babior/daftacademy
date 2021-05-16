@@ -45,7 +45,7 @@ async def create_supplier(supplier: schemas.SupplierCreate, db: Session = Depend
 async def update_supplier(supplier_id: PositiveInt, supplier: schemas.SupplierUpdate, db: Session = Depends(get_db)):
     db_supplier = crud.update_supplier(db, supplier_id, supplier)
     if not db_supplier:
-        raise HTTPException(status_code=401, detail="Supplier not found")
+        raise HTTPException(status_code=404, detail="Supplier not found")
 
     return db_supplier
 
