@@ -27,20 +27,11 @@ async def get_supplier(supplier_id: PositiveInt, db: Session = Depends(get_db)):
 # Task 5.2
 @router.get("/suppliers/{supplier_id}/products")
 async def get_suppliers_products(supplier_id: PositiveInt, db: Session = Depends(get_db)):
-    db_supplier = crud.get_supplier(db, supplier_id)
+    db_supplier = crud.get_supplier(db=db, supplier_id=supplier_id)
     if not db_supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
 
-    db_suppliers_products = crud.get_prod_sup(db, supplier_id)
-    return [{
-        "ProductID": product.ProductID,
-        "ProductName": product.ProductName,
-        "Category": {
-            "CategoryID": product.CategoryID,
-            "CategoryName": product.CategoryName,
-        },
-        "Discontinued": product.Discontinued,
-    } for product in db_suppliers_products]
+    return db_supplier
 
 
 # Task 5.3
@@ -50,13 +41,13 @@ async def create_supplier(supplier: schemas.SupplierCreate, db: Session = Depend
 
 
 # Task 5.4
-@router.put("/suppliers/{supplier_id}", response_model=schemas.SupplierBase, status_code=200)
-async def create_supplier(supplier_id: PositiveInt, supplier: schemas.SupplierUpdate, db: Session = Depends(get_db)):
-    db_supplier = crud.get_supplier(db, supplier_id)
+@router.put("/suppliers/{supplier_id}", response_model=schemas.SupplierUpdate, status_code=200)
+async def update_supplier(supplier_id: PositiveInt, supplier: schemas.SupplierUpdate, db: Session = Depends(get_db)):
+    db_supplier = crud.update_supplier(db, supplier_id, supplier)
     if not db_supplier:
         raise HTTPException(status_code=401, detail="Supplier not found")
-    crud.update_supplier(db, supplier_id, supplier)
-    return crud.get_supplier(db, supplier_id)
+
+    return db_supplier
 
 
 # Task 5.5
